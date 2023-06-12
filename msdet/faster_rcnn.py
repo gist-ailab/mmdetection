@@ -7,7 +7,7 @@ from mmdet.models import build_detector
 import copy
 import numpy as np
 from mmdet.core import bbox2roi
-
+from kornia.losses import ssim_loss
 
 @DETECTORS.register_module()
 class FasterRCNN_TS(TwoStageDetector):
@@ -19,6 +19,7 @@ class FasterRCNN_TS(TwoStageDetector):
                  train_cfg,
                  test_cfg,
                  teacher_cfg,
+                 distill_name='',
                  distill_param=0.,
                  distill_param_backbone=0.,
                  neck=None,
@@ -39,9 +40,11 @@ class FasterRCNN_TS(TwoStageDetector):
         teacher_cfg.model.roi_head.type = 'ContRoIHead'
         self.teacher_cfg = teacher_cfg
         
+        self.distill_name = distill_name
         self.distill_param_backbone = distill_param_backbone
         self.distill_param = distill_param
         
+
     def update_teacher(self, state_dict): 
         # Load Teacher Model
         self.teacher = build_detector(self.teacher_cfg.model,
@@ -154,60 +157,71 @@ class FasterRCNN_TS(TwoStageDetector):
                   averaging the logs.
         """
         self.teacher.eval()
-        with torch.no_grad():
-            _, gt_feats_ori, backbone_ori = self.teacher(**data[0])
+        
+        if self.distill_name == 'F_SKD':
+            with torch.no_grad():
+                _, gt_feats_ori, backbone_ori = self.teacher(**data[0])
+            losses, gt_feats_aug, backbone_aug = self(**data[1])
+
+        else:
+            with torch.no_grad():
+                _, gt_feats_ori, backbone_ori = self.teacher(**data[1])
+            losses, gt_feats_aug, backbone_aug = self(**data[1])
             
-        losses, gt_feats_aug, backbone_aug = self(**data[1])
 
+        if self.distill_name == 'F_SKD':
+            # Backbone Feature Consistency Loss
+            B, _, H_ori, W_ori = data[0]['img'].size()
+            _, _, H_aug, W_aug = data[1]['img'].size()
 
-        # Backbone Feature Consistency Loss
-        B, _, H_ori, W_ori = data[0]['img'].size()
-        _, _, H_aug, W_aug = data[1]['img'].size()
+            ratio_ori_list, ratio_aug_list = [], []
+            for ix in range(len(data[0]['img_metas'])):
+                ratio_ori_list.append((data[0]['img_metas'][ix]['img_shape'][1] / W_ori, data[0]['img_metas'][ix]['img_shape'][0] / H_ori))
+                ratio_aug_list.append((data[1]['img_metas'][ix]['img_shape'][1] / W_aug, data[1]['img_metas'][ix]['img_shape'][0] / H_aug))
 
-        ratio_ori_list, ratio_aug_list = [], []
-        for ix in range(len(data[0]['img_metas'])):
-            ratio_ori_list.append((data[0]['img_metas'][ix]['img_shape'][1] / W_ori, data[0]['img_metas'][ix]['img_shape'][0] / H_ori))
-            ratio_aug_list.append((data[1]['img_metas'][ix]['img_shape'][1] / W_aug, data[1]['img_metas'][ix]['img_shape'][0] / H_aug))
-
-        if self.distill_param_backbone > 0:
-            consistency_backbone_loss = 0.
-            for backbone_ori_ix, backbone_aug_ix in zip(backbone_ori, backbone_aug):
-                loss_batch = 0.
-                for batch_index in range(backbone_aug_ix.size(0)):
-                    b_ori_ix, b_aug_ix = backbone_ori_ix[[batch_index]], backbone_aug_ix[[batch_index]] 
+            if self.distill_param_backbone > 0:
+                consistency_backbone_loss = 0.
+                for backbone_ori_ix, backbone_aug_ix in zip(backbone_ori, backbone_aug):
+                    loss_batch = 0.
+                    for batch_index in range(backbone_aug_ix.size(0)):
+                        b_ori_ix, b_aug_ix = backbone_ori_ix[[batch_index]], backbone_aug_ix[[batch_index]] 
+                        
+                        # Original Image Extraction
+                        _, _, h_ori, w_ori = b_ori_ix.size()
+                        w_ori = int(w_ori * ratio_ori_list[batch_index][0])
+                        h_ori = int(h_ori * ratio_ori_list[batch_index][1])
+                        b_ori_ix = b_ori_ix[:, :, :h_ori, :w_ori]
+                        
+                        # Augmentation Image Extraction
+                        _, _, h_aug, w_aug = b_aug_ix.size()
+                        w_aug = int(w_aug * ratio_aug_list[batch_index][0])
+                        h_aug = int(h_aug * ratio_aug_list[batch_index][1])
+                        b_aug_ix = F.interpolate(b_aug_ix[:, :, :h_aug, :w_aug], size=(h_ori, w_ori), mode='bilinear')
+                        
+                        loss_batch += self.calc_consistency_loss(torch.unsqueeze(b_ori_ix.flatten(), dim=0), torch.unsqueeze(b_aug_ix.flatten(), dim=0))
                     
-                    # Original Image Extraction
-                    _, _, h_ori, w_ori = b_ori_ix.size()
-                    w_ori = int(w_ori * ratio_ori_list[batch_index][0])
-                    h_ori = int(h_ori * ratio_ori_list[batch_index][1])
-                    b_ori_ix = b_ori_ix[:, :, :h_ori, :w_ori]
-                    
-                    # Augmentation Image Extraction
-                    _, _, h_aug, w_aug = b_aug_ix.size()
-                    w_aug = int(w_aug * ratio_aug_list[batch_index][0])
-                    h_aug = int(h_aug * ratio_aug_list[batch_index][1])
-                    b_aug_ix = F.interpolate(b_aug_ix[:, :, :h_aug, :w_aug], size=(h_ori, w_ori), mode='bilinear')
-                    
-                    loss_batch += self.calc_consistency_loss(torch.unsqueeze(b_ori_ix.flatten(), dim=0), torch.unsqueeze(b_aug_ix.flatten(), dim=0))
+                    loss_batch /= B
+                    consistency_backbone_loss += loss_batch
                 
-                loss_batch /= B
-                consistency_backbone_loss += loss_batch
+                consistency_backbone_loss = consistency_backbone_loss * self.distill_param_backbone / len(backbone_ori)
+                losses.update({'consistency_backbone_loss': consistency_backbone_loss})
+        
+            # Calc Consistency Loss
+            B = gt_feats_ori.size(0)
+            gt_feats_ori = gt_feats_ori.view(B, -1)
+            gt_feats_aug = gt_feats_aug.view(B, -1)
             
-            consistency_backbone_loss = consistency_backbone_loss * self.distill_param_backbone / len(backbone_ori)
-            losses.update({'consistency_backbone_loss': consistency_backbone_loss})
-        
-
-        # Calc Consistency Loss
-        B = gt_feats_ori.size(0)
-        gt_feats_ori = gt_feats_ori.view(B, -1)
-        gt_feats_aug = gt_feats_aug.view(B, -1)
-        
-        if self.distill_param > 0:
-            consistency_rpn_loss = 0.
-            positive_loss = self.calc_consistency_loss(gt_feats_ori, gt_feats_aug)
-            consistency_rpn_loss += positive_loss * self.distill_param
-            losses.update({'consistency_rpn_loss': consistency_rpn_loss})
-        
+            if self.distill_param > 0:
+                consistency_rpn_loss = 0.
+                positive_loss = self.calc_consistency_loss(gt_feats_ori, gt_feats_aug)
+                consistency_rpn_loss += positive_loss * self.distill_param
+                losses.update({'consistency_rpn_loss': consistency_rpn_loss})
+        elif self.distill_name == 'SSIM':
+            assert self.distill_param_backbone > 0
+            loss_distill_ssim = 0.
+            for backbone_ori_ix, backbone_aug_ix in zip(backbone_ori, backbone_aug):
+                loss_distill_ssim += ssim_loss(self.min_max(backbone_aug), self.min_max(backbone_aug), window_size=11)
+    
         loss, log_vars = self._parse_losses(losses)
 
         outputs = dict(
@@ -225,6 +239,9 @@ class FasterRCNN_TS(TwoStageDetector):
 
     def calc_negative_loss(self, feat_ori, feat_aug): 
         return torch.mean(F.cosine_similarity(feat_ori, feat_aug))
+    
+    def min_max(self, x):
+        pass
 
 
 @DETECTORS.register_module()
