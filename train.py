@@ -26,7 +26,7 @@ import msdet
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Train a detector')
-    parser.add_argument('--config', default='configs/faster_rcnn_ssim/coco_faster_rcnn_r101_fpn_1x_mstrain_ssim.py', type=str, help='train config file path')
+    parser.add_argument('--config', default='configs/faster_rcnn_ssim/coco_faster_rcnn_r50_fpn_1x_mstrain_ssim.py', type=str, help='train config file path')
     parser.add_argument('--work-dir', help='the dir to save logs and models')
     parser.add_argument(
         '--resume-from', help='the checkpoint file to resume from')
@@ -113,7 +113,7 @@ def main():
     # args.config = 'configs/sparse_rcnn_kd/coco_sparse_rcnn_r50_fpn_mstrain_480-800_3x_fskd.py'
     # args.work_dir = 'result/coco/debugging'
     # args.seed = 0
-    args.gpu_id = 4
+    # args.gpu_id = 4
 
     cfg = Config.fromfile(args.config)
 

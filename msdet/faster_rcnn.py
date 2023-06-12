@@ -216,6 +216,7 @@ class FasterRCNN_TS(TwoStageDetector):
                 positive_loss = self.calc_consistency_loss(gt_feats_ori, gt_feats_aug)
                 consistency_rpn_loss += positive_loss * self.distill_param
                 losses.update({'consistency_rpn_loss': consistency_rpn_loss})
+        
         elif self.distill_name == 'SSIM':
             assert self.distill_param_backbone > 0
             loss_distill_ssim = 0.

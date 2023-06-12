@@ -7,7 +7,7 @@ do
                                         --nproc_per_node=4 \
                                         --master_port=899 \
                                         train.py \
-                                        --config configs/faster_rcnn_kd/coco_$MODEL_NAME.py \
+                                        --config configs/faster_rcnn_ssim/coco_$MODEL_NAME.py \
                                         --seed 0 \
                                         --work-dir result/coco/ssim/$MODEL_NAME \
                                         --launcher pytorch
