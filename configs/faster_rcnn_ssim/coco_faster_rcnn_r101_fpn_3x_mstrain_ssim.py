@@ -4,7 +4,7 @@ _base_ = ['../faster_rcnn/coco_faster_rcnn_r101_fpn_3x_mstrain.py']
 # model
 model = dict(type='FasterRCNN_TS',
              distill_name='SSIM',
-             distill_param_backbone=1.5,
+             distill_param_backbone=2.0,
              roi_head=dict(
                  type='ContRoIHead'
                 ),

@@ -220,7 +220,12 @@ class FasterRCNN_TS(TwoStageDetector):
             assert self.distill_param_backbone > 0
             loss_distill_ssim = 0.
             for backbone_ori_ix, backbone_aug_ix in zip(backbone_ori, backbone_aug):
-                loss_distill_ssim += ssim_loss(self.min_max(backbone_aug), self.min_max(backbone_aug), window_size=11)
+                backbone_ori_ix, backbone_aug_ix = self.min_max(backbone_ori_ix), self.min_max(backbone_aug_ix)
+                loss_distill_ssim += ssim_loss(backbone_aug_ix, backbone_ori_ix, window_size=11)
+            
+            loss_distill_ssim = loss_distill_ssim * self.distill_param_backbone
+            losses.update({'loss_distill_ssim': loss_distill_ssim})
+                
     
         loss, log_vars = self._parse_losses(losses)
 
@@ -241,8 +246,12 @@ class FasterRCNN_TS(TwoStageDetector):
         return torch.mean(F.cosine_similarity(feat_ori, feat_aug))
     
     def min_max(self, x):
-        pass
-
+        max_value = torch.max(x.flatten(1), dim=-1)[0].unsqueeze(-1).unsqueeze(-1).unsqueeze(-1)
+        min_value = torch.min(x.flatten(1), dim=-1)[0].unsqueeze(-1).unsqueeze(-1).unsqueeze(-1)
+        
+        x_norm = (x - min_value) / (max_value - min_value)
+        return x_norm
+        
 
 @DETECTORS.register_module()
 class FasterRCNNCont(TwoStageDetector):
