@@ -15,7 +15,7 @@ done
 
 
 # Large Teacher (HR SIZE)
-for MODEL_NAME in faster_rcnn_r101_fpn_1x_mstrain faster_rcnn_r101_fpn_2x_mstrain faster_rcnn_r101_fpn_3x_mstrain faster_rcnn_r50_fpn_1x_mstrain faster_rcnn_r50_fpn_2x_mstrain faster_rcnn_r50_fpn_3x_mstrain
+for MODEL_NAME in faster_rcnn_r101_fpn_2x
 do
     CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 python -m torch.distributed.launch \
                                         --nproc_per_node=8 \
