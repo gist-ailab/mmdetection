@@ -5,7 +5,7 @@ _base_ = [
 ]
 
 # model
-model = dict(type='FasterRCNN_SelfTeacher',
+model = dict(type='FasterRCNN_Wrapper',
              distill_param_backbone=1.0,
              distill_param=1.0,
              roi_head=dict(type='ContRoIHead')
@@ -39,7 +39,6 @@ train_pipeline = [
     dict(type='Collect', keys=['img', 'gt_bboxes', 'gt_labels']),
 ]
 
-
 data = dict(
     samples_per_gpu=4,
     workers_per_gpu=4,
@@ -49,6 +48,12 @@ data = dict(
         crop_pipeline=crop_pipeline,
         pipeline=train_pipeline),
     )
+
+
+custom_hooks = [
+    dict(type="MeanTeacher", momentum=0.999, interval=1, warm_up=0),
+]
+
 
 # optimizer
 optimizer = dict(type='SGD', lr=0.02, momentum=0.9, weight_decay=0.0001)
