@@ -7,7 +7,7 @@ from mmdet.models import build_detector
 import copy
 import numpy as np
 from mmdet.core import bbox2roi
-from kornia.losses import ssim_loss
+# from kornia.losses import ssim_loss
 
 @DETECTORS.register_module()
 class FasterRCNN_TS(TwoStageDetector):
