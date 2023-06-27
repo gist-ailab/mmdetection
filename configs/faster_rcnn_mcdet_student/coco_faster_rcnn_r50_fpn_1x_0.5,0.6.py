@@ -15,8 +15,8 @@ model = dict(type='FasterRCNN_TS_SCALE',
             )
 
 # Distillation Params
-teacher_config_path = 'result/coco/mcdet/teacher/faster_rcnn_r50_fpn_1x/coco_faster_rcnn_r50_fpn_1x.py'
-teacher_weight_path = 'result/coco/mcdet/teacher/faster_rcnn_r50_fpn_1x/latest.pth'
+teacher_config_path = 'result/coco/mcdet/teacher/faster_rcnn_r50_fpn_1x_crop0.5/coco_faster_rcnn_r50_fpn_1x_crop0.5.py'
+teacher_weight_path = 'result/coco/mcdet/teacher/faster_rcnn_r50_fpn_1x_crop0.5/latest.pth'
 backbone_pretrain = False
 
 # Data
@@ -44,7 +44,7 @@ crop_pipeline = [
 
 
 train_pipeline = [
-    dict(type='DistillDown', ratio_range=(0.5, 1.0), img_scale=(1333, 800), keep_ratio=True),
+    dict(type='DistillDown', ratio_range=(0.6, 1.0), img_scale=(1333, 800), keep_ratio=True),
     dict(type='Normalize', **img_norm_cfg),
     dict(type='Pad', size_divisor=32),
     dict(type='DefaultFormatBundle'),
