@@ -11,8 +11,8 @@ img_norm_cfg = dict(
 train_pipeline = [
     dict(type='LoadImageFromFile'),
     dict(type='LoadAnnotations', with_bbox=True),
-    dict(type='Resize', img_scale=(1333, 800), keep_ratio=True),
     dict(type='RandomFlip', flip_ratio=0.5),
+    dict(type='Resize', img_scale=(1333, 800), keep_ratio=True),
     dict(type='DistillCrop',
         crop_size=(0.9, 0.9),
         allow_negative_crop=True),
@@ -24,8 +24,8 @@ train_pipeline = [
 ]
 
 data = dict(
-    samples_per_gpu=4,
-    workers_per_gpu=4,
+    samples_per_gpu=2,
+    workers_per_gpu=2,
     train=dict(
         pipeline=train_pipeline),
     )
