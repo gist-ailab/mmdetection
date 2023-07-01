@@ -43,7 +43,7 @@ gamma_fgd=0.00005
 lambda_fgd=0.0000005
 distiller = dict(
     type='DetectionDistiller',
-    teacher_pretrained = 'https://download.openmmlab.com/mmdetection/v2.0/faster_rcnn/faster_rcnn_r101_fpn_2x_coco/faster_rcnn_r101_fpn_2x_coco_bbox_mAP-0.398_20200504_210455-1d2dac9c.pth',
+    teacher_pretrained = '/SSDb/sung/src/mmdetection/result/coco/mcdet/teacher/faster_rcnn_r101_fpn_2x_crop0.9_mstrain/epoch_24.pth',
     init_student = True,
     fskd=False,
     distill_cfg = [ dict(student_module = 'neck.fpn_convs.3.conv',
