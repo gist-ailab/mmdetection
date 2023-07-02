@@ -23,7 +23,7 @@ from mmdet.utils import (collect_env, get_device, get_root_logger,
                          setup_multi_processes, update_data_root)
 import msdet
 import mcdet
-
+import others.SSIM
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Train a detector')
