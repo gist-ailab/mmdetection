@@ -56,16 +56,14 @@ class DetectionDistiller(BaseDetector):
         teacher_modules = dict(self.teacher.named_modules())
         def regitster_hooks(student_module,teacher_module):
             def hook_teacher_forward(module, input, output):
-
                     self.register_buffer(teacher_module,output)
                 
             def hook_student_forward(module, input, output):
-
                     self.register_buffer( student_module,output )
             return hook_teacher_forward,hook_student_forward
+ 
         
         for item_loc in distill_cfg:
-            
             student_module = 'student_' + item_loc.student_module.replace('.','_')
             teacher_module = 'teacher_' + item_loc.teacher_module.replace('.','_')
 
@@ -79,8 +77,10 @@ class DetectionDistiller(BaseDetector):
             for item_loss in item_loc.methods:
                 loss_name = item_loss.name
                 self.distill_losses[loss_name] = build_distill_loss(item_loss)
+                
+                
     def base_parameters(self):
-        return nn.ModuleList([self.student,self.distill_losses])
+        return nn.ModuleList([self.student, self.distill_losses])
 
 
     @property
@@ -131,10 +131,10 @@ class DetectionDistiller(BaseDetector):
         """
             
         # data[0] : down-sampled / data[1] : cropped
-        student_loss, gt_feats_down, backbone_down = self.student(**data0)
+        student_loss, gt_feats_down, backbone_down = self.student.forward_train(**data0)
         with torch.no_grad():
             self.teacher.eval()
-            _ = self.teacher(**data0)
+            _ = self.teacher.forward_train(**data0)
 
         # FGD loss (for downsampled images)
         buffer_dict = dict(self.named_buffers())
@@ -153,11 +153,11 @@ class DetectionDistiller(BaseDetector):
         if self.use_fskd:
             # For High Resolution Teachers
             with torch.no_grad():
-                _, gt_feats_crop, backbone_crop = self.teacher(**data1)
+                _, gt_feats_crop, backbone_crop = self.teacher.forward_train(**data1)
             
             # params
-            self.distill_param_backbone = 1.0
-            self.distill_param = 1.0
+            self.distill_param_backbone = 1.5
+            self.distill_param = 1.5
             
             # Backbone Feature Consistency Loss
             B, _, H_down, W_down = data0['img'].size()
@@ -250,7 +250,7 @@ class DetectionDistiller(BaseDetector):
                   DDP, it means the batch size on each GPU), which is used for
                   averaging the logs.
         """
-        losses = self(data[0], data[1])
+        losses = self.forward_train(data[0], data[1])
         loss, log_vars = self._parse_losses(losses)
 
         outputs = dict(

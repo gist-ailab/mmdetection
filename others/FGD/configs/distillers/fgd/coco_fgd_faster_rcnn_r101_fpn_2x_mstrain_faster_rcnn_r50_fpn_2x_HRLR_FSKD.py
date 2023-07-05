@@ -112,7 +112,7 @@ distiller = dict(
 student_cfg = 'configs/faster_rcnn/coco_faster_rcnn_r50_fpn_2x.py'
 teacher_cfg = 'configs/faster_rcnn/coco_faster_rcnn_r101_fpn_2x.py'
 optimizer = dict(type='SGD', lr=0.02, momentum=0.9, weight_decay=0.0001)
-optimizer_config = dict(_delete_=True, grad_clip=dict(max_norm=35, norm_type=2))
+# optimizer_config = dict(_delete_=True, grad_clip=dict(max_norm=35, norm_type=2))
 data = dict(
     samples_per_gpu=4,
     workers_per_gpu=4,

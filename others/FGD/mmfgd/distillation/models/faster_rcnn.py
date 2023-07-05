@@ -78,7 +78,6 @@ class FasterRCNNCont(TwoStageDetector):
                 proposal_cfg=proposal_cfg,
                 **kwargs)
             losses.update(rpn_losses)
-
         else:
             proposal_list = proposals
 
