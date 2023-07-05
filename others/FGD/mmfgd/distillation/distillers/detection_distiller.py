@@ -27,8 +27,8 @@ class DetectionDistiller(BaseDetector):
         super(DetectionDistiller, self).__init__()
         
         self.teacher = build_detector(teacher_cfg.model,
-                                        train_cfg=teacher_cfg.get('train_cfg'),
-                                        test_cfg=teacher_cfg.get('test_cfg'))
+                                        train_cfg=None,
+                                        test_cfg=None)
         self.init_weights_teacher(teacher_pretrained)
         self.teacher.eval()
 
@@ -36,7 +36,7 @@ class DetectionDistiller(BaseDetector):
                                         train_cfg=student_cfg.get('train_cfg'),
                                         test_cfg=student_cfg.get('test_cfg'))
         if init_student:
-            t_checkpoint = _load_checkpoint(teacher_pretrained)
+            t_checkpoint = torch.load(teacher_pretrained, map_location='cpu')
             all_name = []
             for name, v in t_checkpoint["state_dict"].items():
                 if name.startswith("backbone."):
@@ -45,7 +45,7 @@ class DetectionDistiller(BaseDetector):
                     all_name.append((name, v))
 
             state_dict = OrderedDict(all_name)
-            load_state_dict(self.student, state_dict)
+            self.student.load_state_dict(state_dict, strict=False)
 
         self.distill_losses = nn.ModuleDict()
         self.distill_cfg = distill_cfg
@@ -112,7 +112,10 @@ class DetectionDistiller(BaseDetector):
             pretrained (str, optional): Path to pre-trained weights.
                 Defaults to None.
         """
-        checkpoint = load_checkpoint(self.teacher, path, map_location='cpu')
+        checkpoint = torch.load(path, map_location='cpu')['state_dict']
+        self.teacher.load_state_dict(checkpoint, strict=True)
+        for param in self.teacher.parameters():
+            param.requires_grad = False
 
     def forward_train(self, data0, data1):
 
