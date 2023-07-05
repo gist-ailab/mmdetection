@@ -1,5 +1,5 @@
 # !/usr/bin/env bash
-for MODEL_NAME in faster_rcnn_r101_fpn_2x_crop0.9_mstrain
+for MODEL_NAME in faster_rcnn_r50_fpn_1x_crop0.9_mstrain
 do
     python -m torch.distributed.launch \
             --nproc_per_node=8 \
