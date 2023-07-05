@@ -1,5 +1,4 @@
 # !/usr/bin/env bash
-
 for MODEL_NAME in fgd_faster_rcnn_r101_fpn_2x_mstrain_faster_rcnn_r50_fpn_2x_HRLR
 do
     CUDA_VISIBLE_DEVICES=0,1,2,3 python -m torch.distributed.launch \
