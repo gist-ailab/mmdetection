@@ -3,3 +3,4 @@ result/
 work_dirs/
 *.json
 checkpoints/
+visualization*
