@@ -66,7 +66,7 @@ class FasterRCNN_FUSION(TwoStageDetector):
         feat_lr = self.extract_feat(lr_img)
 
         feat_hr = (feat_hr[1], feat_hr[2], feat_hr[3], feat_hr[4], feat_hr[5])
-        feat_lr = (feat_lr[0], feat_lr[1], feat_lr[2], feat_lr[3], feat_hr[4])
+        feat_lr = (feat_lr[0], feat_lr[1], feat_lr[2], feat_lr[3], feat_lr[4])
         
         feat_mix = []
         for f_h, f_l in zip(feat_hr, feat_lr):
@@ -181,10 +181,16 @@ class FasterRCNN_FUSION(TwoStageDetector):
         for key, value in losses_lr.items():
             losses[key+"_lr"] = value
         for key, value in losses_mix.items():
-            if type(value) == list:
-                value = [v * 0.4 for v in value]
+            if 'acc' in key:
+                param = 1.0
             else:
-                value = value * 0.4
+                param = 0.4
+                
+            if type(value) == list:
+                value = [v * param for v in value]
+            else:
+                value = value * param
+                
             losses[key+"_mix"] = value
 
         loss, log_vars = self._parse_losses(losses)
