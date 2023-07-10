@@ -116,7 +116,7 @@ def main():
     # args.config = 'configs/sparse_rcnn_kd/coco_sparse_rcnn_r50_fpn_mstrain_480-800_3x_fskd.py'
     # args.work_dir = 'result/coco/debugging'
     # args.seed = 0
-    args.gpu_id = 1
+    # args.gpu_id = 1
 
     cfg = Config.fromfile(args.config)
 

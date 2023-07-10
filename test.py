@@ -20,6 +20,9 @@ from mmdet.utils import (build_ddp, build_dp, compat_cfg, get_device,
                          replace_cfg_vals, rfnext_init_model,
                          setup_multi_processes, update_data_root)
 import msdet
+import mcdet
+import others.SSIM
+import others.MSAD
 
 def parse_args():
     parser = argparse.ArgumentParser(
