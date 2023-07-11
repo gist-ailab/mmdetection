@@ -12,6 +12,20 @@ do
 done
 
 
+# lr settings
+for MODEL_NAME in faster_rcnn_r50_fpn_2x_mstrain_r50_fpn_2x_0.9_0.9,LR
+do
+    CUDA_VISIBLE_DEVICES=2,3,4,5 python -m torch.distributed.launch \
+                                        --nproc_per_node=4 \
+                                        --master_port=888 \
+                                        train.py \
+                                        --config configs/faster_rcnn_LR_mcdet_student/coco_$MODEL_NAME.py \
+                                        --seed 0 \
+                                        --work-dir result/coco/LR_2x/mcdet/$MODEL_NAME \
+                                        --launcher pytorch
+done
+
+
 
 #### SSIM
 for MODEL_NAME in faster_rcnn_r101_2x_mstrain_r50_fpn_2x_SSIM+FSKD_0.9_0.9,0.6
