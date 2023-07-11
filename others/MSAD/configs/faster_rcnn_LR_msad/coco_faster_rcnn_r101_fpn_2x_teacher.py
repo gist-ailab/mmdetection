@@ -25,6 +25,14 @@ model = dict(type='FasterRCNN_FUSION',
                         scales=[8],
                         ratios=[0.5, 1.0, 2.0],
                         strides=[8, 16, 32, 64, 128]),
+                    ),
+            roi_head=dict(
+                    type='StandardRoIHead',
+                    bbox_roi_extractor=dict(
+                        type='SingleRoIExtractor',
+                        roi_layer=dict(type='RoIAlign', output_size=7, sampling_ratio=0),
+                        out_channels=256,
+                        featmap_strides=[8, 16, 32, 64, 128]),
                     )
                 )
     

@@ -72,7 +72,7 @@ class FasterRCNN_FUSION(TwoStageDetector):
         for f_h, f_l in zip(feat_hr, feat_lr):
             f_mix = torch.cat([f_h, f_l], dim=1)
             fusion_score = self.SE(f_mix)
-            feat_mix.append(fusion_score[:,0].unsqueeze(-1)*f_h + fusion_score[:,1].unsqueeze(-1)*f_l)
+            feat_mix.append(fusion_score[:,0].unsqueeze(1)*f_h + fusion_score[:,1].unsqueeze(1)*f_l)
         feat_mix = tuple(feat_mix)    
         return feat_hr, feat_lr, feat_mix
     
@@ -175,6 +175,7 @@ class FasterRCNN_FUSION(TwoStageDetector):
         losses_hr = self.forward_train(x=feat_hr, **data)
         losses_lr = self.forward_train(x=feat_lr, **data)
         losses_mix = self.forward_train(x=feat_mix, **data)
+        
         losses = {}
         for key, value in losses_hr.items():
             losses[key+"_hr"] = value 
