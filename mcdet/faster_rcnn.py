@@ -173,7 +173,7 @@ class FasterRCNN_TS_SCALE(TwoStageDetector):
 
             if self.distill_param_backbone > 0:
                 consistency_backbone_loss = 0.
-                for backbone_down_ix, backbone_crop_ix in zip(backbone_down, backbone_crop):
+                for stage,(backbone_down_ix, backbone_crop_ix) in enumerate(zip(backbone_down, backbone_crop)):
                     loss_batch = 0.
                     for batch_index in range(backbone_down_ix.size(0)):
                         b_down_ix, b_crop_ix = backbone_down_ix[[batch_index]], backbone_crop_ix[[batch_index]] 
@@ -190,8 +190,12 @@ class FasterRCNN_TS_SCALE(TwoStageDetector):
                         h_down = int(h_down * ratio_down_list[batch_index][1])
                         b_down_ix = b_down_ix[:, :, :h_down, :w_down]
                         
+                        if (w_down < 2) or (h_down < 2):
+                            print('continue due to small')
+                            continue
+                            
                         # select cropped regions
-                        _,_, h_imp, w_imp = b_down_ix.size()
+                        _, _, h_imp, w_imp = b_down_ix.size()
                         x_l, x_u, y_l, y_u = data[1]['crop_loc'][batch_index]
                         b_down_ix = b_down_ix[:, :, int(h_imp * y_l) : int(h_imp * y_u), int(w_imp * x_l) : int(w_imp * x_u)]
                         
@@ -201,7 +205,7 @@ class FasterRCNN_TS_SCALE(TwoStageDetector):
                     
                     loss_batch /= B
                     consistency_backbone_loss += loss_batch
-                
+                    
                 consistency_backbone_loss = consistency_backbone_loss * self.distill_param_backbone / len(backbone_crop)
                 losses.update({'consistency_backbone_loss': consistency_backbone_loss})
         
