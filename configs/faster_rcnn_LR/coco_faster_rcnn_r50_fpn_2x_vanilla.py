@@ -14,7 +14,7 @@ train_pipeline = [
     dict(type='RandomFlip', flip_ratio=0.5),
     dict(
         type='Resize',
-        img_scale=[(int(1333/2), int(640/2)), (1333, 800)],
+        img_scale=[ (int(1333/2), int(800/2)), (1333, 800)],
         multiscale_mode='value',
         keep_ratio=True),
     dict(type='Normalize', **img_norm_cfg),
