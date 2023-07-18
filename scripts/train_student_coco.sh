@@ -13,7 +13,7 @@ done
 
 
 # lr settings
-for MODEL_NAME in faster_rcnn_r50_fpn_2x_mstrain_r50_fpn_2x_0.9_0.9,LR
+for MODEL_NAME in faster_rcnn_r50_fpn_2x_mstrain_r50_fpn_2x_0.9_0.9,0.5
 do
     CUDA_VISIBLE_DEVICES=2,3,4,5 python -m torch.distributed.launch \
                                         --nproc_per_node=4 \
