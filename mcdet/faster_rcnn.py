@@ -8,6 +8,8 @@ import copy
 import numpy as np
 from mmdet.core import bbox2roi
 # from kornia.losses import ssim_loss
+import math
+
 
 @DETECTORS.register_module()
 class FasterRCNN_TS_SCALE(TwoStageDetector):
@@ -22,6 +24,7 @@ class FasterRCNN_TS_SCALE(TwoStageDetector):
                  distill_name='',
                  distill_param=0.,
                  distill_param_backbone=0.,
+                 use_cross_attn=False,
                  neck=None,
                  pretrained=None,
                  init_cfg=None):
@@ -34,6 +37,8 @@ class FasterRCNN_TS_SCALE(TwoStageDetector):
             test_cfg=test_cfg,
             pretrained=pretrained,
             init_cfg=init_cfg)
+        
+        self.use_cross_attn = use_cross_attn
         
         # Teacher Network
         teacher_cfg.model.type = 'FasterRCNNCont'
@@ -208,23 +213,17 @@ class FasterRCNN_TS_SCALE(TwoStageDetector):
                     
                 consistency_backbone_loss = consistency_backbone_loss * self.distill_param_backbone / len(backbone_crop)
                 losses.update({'consistency_backbone_loss': consistency_backbone_loss})
-        
-        
-            ## Calc Consistency Loss
-            B = gt_feats_crop.size(0)
-            gt_feats_crop = gt_feats_crop.view(B, -1)
-            
-            # select valid masks after crop
-            crop_index = data[1]['crop_valid_inds']
-            valid_index_list = []
-            for ix in range(crop_index.size(0)):
-                num = int(crop_index[ix][-1])
-                valid_index_list.append(crop_index[ix][:num])
-            valid_index_list = torch.cat(valid_index_list).bool()
-            gt_feats_down = gt_feats_down[valid_index_list]
-            gt_feats_down = gt_feats_down.view(B, -1)
             
             if self.distill_param > 0:
+                # select valid masks after crop
+                crop_index = data[1]['crop_valid_inds']
+                valid_index_list = []
+                for ix in range(crop_index.size(0)):
+                    num = int(crop_index[ix][-1])
+                    valid_index_list.append(crop_index[ix][:num])
+                valid_index_list = torch.cat(valid_index_list).bool()
+                gt_feats_down = gt_feats_down[valid_index_list]
+            
                 consistency_rpn_loss = 0.
                 positive_loss = self.calc_consistency_loss(gt_feats_crop, gt_feats_down)
                 consistency_rpn_loss += positive_loss * self.distill_param
@@ -237,5 +236,30 @@ class FasterRCNN_TS_SCALE(TwoStageDetector):
         return outputs
     
     
-    def calc_consistency_loss(self, feat_teacher, feat_student):
-        return torch.mean(1.0 - F.cosine_similarity(feat_student, feat_teacher))
+    def calc_consistency_loss(self, l, h):
+        single_loss = self.single_similarity(l, h)
+        
+        if self.use_cross_attn:
+            cross_loss = self.cross_similarity(l, h) * 0.5
+            return single_loss + cross_loss
+        else:
+            return single_loss
+        
+    def cross_similarity(self, l, h):
+        l, h = l.flatten(2).transpose(2, 1), h.flatten(2).transpose(2,1)
+        attn_l = self.get_attention(l, h)
+        attn_h = self.get_attention(h, h)
+        loss = torch.mean(1.0 - F.cosine_similarity(attn_l, attn_h))
+        return loss
+    
+    def single_similarity(self, l, h):
+        l, h = l.flatten(1), h.flatten(1)
+        loss = torch.mean(1.0 - F.cosine_similarity(l, h))
+        return loss
+    
+    def get_attention(self, query, key):
+        d_k = key.shape[-1]
+        attention = torch.matmul(query, key.transpose(-2, -1))
+        attention = attention / math.sqrt(d_k)
+        attention = F.softmax(attention, dim=-1)
+        return attention
