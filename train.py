@@ -25,6 +25,7 @@ import msdet
 import mcdet
 import others.SSIM
 import others.MSAD
+import jsdet
 
 
 def parse_args():

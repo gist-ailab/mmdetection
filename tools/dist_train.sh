@@ -29,6 +29,7 @@ CUDA_VISIBLE_DEVICES=0,1 python -m torch.distributed.launch \
                                 --launcher pytorch
 
 
+
 # # Single GPU
 # python train.py --gpu-id 7 \
 #                 --config configs/faster_rcnn/smdp_faster_rcnn_r50_caffe_c4_1x.py \

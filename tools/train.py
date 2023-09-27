@@ -24,6 +24,7 @@ from mmdet.utils import (collect_env, get_device, get_root_logger,
 
 import msdet
 
+
 def parse_args():
     parser = argparse.ArgumentParser(description='Train a detector')
     parser.add_argument('--config', default='configs/mask_rcnn_kd/coco_mask_rcnn_r101_fpn_1x_fskd.py', type=str, help='train config file path')
